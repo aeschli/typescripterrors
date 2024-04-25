@@ -1,13 +1,23 @@
 import fs from 'fs';
-console.log('hello world');
-const table = fs.readFileSync('./errors.txt', 'utf-8');
+import https from 'https';
 
+https.get('https://raw.githubusercontent.com/microsoft/TypeScript/main/src/compiler/diagnosticMessages.json', (res) => {
+    let data = '';
 
-const lines = table.trim().split('\n');
-const result = [];
-const json = lines.map(line => {
-    const [code, ...messageParts] = line.split(': ');
-    const message = messageParts.join(': ');
-    result.push(`${JSON.stringify(code.substring(2))}, ${JSON.stringify(message)}`);
+    res.on('data', (chunk) => {
+        data += chunk.toString();
+    });
+
+    res.on('end', () => {
+        const table = JSON.parse(data);
+        let result = [];
+        for (let key in table) {
+            const code = table[key].code.toString();
+            result.push(`${JSON.stringify(code)}, ${JSON.stringify(key)}`);
+        }
+        fs.writeFileSync('./errors.json', '[\n' + result.join(',\n') + '\n]', 'utf-8');
+    });
+
+}).on('error', (err) => {
+    console.log('Error: ' + err.message);
 });
-fs.writeFileSync('./errors.json', '[\n' + result.join(',\n') + '\n]', 'utf-8');
